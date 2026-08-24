@@ -5,11 +5,14 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+# 🆔 ID เซิร์ฟเวอร์ของคุณ
+GUILD_ID = 1529780061975089152
+
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# 🐱 คลังลิงก์เสียงแมวร้องแบบต่างๆ (สุ่มเล่น)
+# 🐱 คลังลิงก์เสียงแมวร้อง
 CAT_SOUNDS = [
     "https://www.myinstants.com/media/sounds/meow_1.mp3",
     "https://www.myinstants.com/media/sounds/cat-meow-sound-effect_1.mp3",
@@ -18,16 +21,21 @@ CAT_SOUNDS = [
 
 FFMPEG_OPTIONS = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-    'options': '-vn',
+    'options': '-vn -loglevel quiet',
 }
+
+MY_GUILD = discord.Object(id=GUILD_ID)
 
 @bot.event
 async def on_ready():
     print(f'🐱 บอทแมวกลม ออนไลน์แล้ว! (ID: {bot.user.id})')
-    # ซิงค์คำสั่ง Slash Command อัตโนมัติเมื่อบอทออนไลน์
+    
+    # ซิงค์คำสั่งเฉพาะเซิร์ฟเวอร์ของคุณทันทีที่รัน
     try:
-        synced = await bot.tree.sync()
-        print(f"✅ ซิงค์ Slash Commands สำเร็จทั้งหมด {len(synced)} คำสั่ง!")
+        # คัดลอกคำสั่งทั้งหมดส่งไปที่ GUILD_ID นี้โดยเฉพาะ
+        bot.tree.copy_global_to(guild=MY_GUILD)
+        synced = await bot.tree.sync(guild=MY_GUILD)
+        print(f"✅ ซิงค์ {len(synced)} คำสั่งเข้าเซิร์ฟเวอร์ {GUILD_ID} เรียบร้อยแล้ว!")
     except Exception as e:
         print(f"❌ ซิงค์คำสั่งไม่ผ่าน: {e}")
 
@@ -36,18 +44,14 @@ async def on_ready():
 @bot.tree.command(name="เข้ามา", description="ให้น้องแมวกลมเข้าไป AFK ในห้องเสียง")
 async def come_in(interaction: discord.Interaction):
     if not interaction.user.voice:
-        await interaction.response.send_message("❌ เข้าห้องเสียงก่อนนะมนุษย์!", ephemeral=True)
+        await interaction.response.send_message("❌ เข้าห้องเสียงก่อนนะ!", ephemeral=True)
         return
-
     voice_channel = interaction.user.voice.channel
     voice_client = discord.utils.get(bot.voice_clients, guild__id=interaction.guild.id)
-
     if voice_client:
         await voice_client.move_to(voice_channel)
     else:
-        # self_deaf=True ปิดการได้ยิน ขึ้นไอคอนหูฟังโดนขีดฆ่า
         await voice_channel.connect(self_deaf=True)
-    
     await interaction.response.send_message("🐾 เมี้ยว~ น้องแมวกลมมานั่ง AFK แล้ว!")
 
 @bot.tree.command(name="ออก", description="ให้น้องแมวกลมออกจากห้องเสียง")
@@ -63,15 +67,12 @@ async def go_out(interaction: discord.Interaction):
 async def cat_sound(interaction: discord.Interaction):
     voice_client = discord.utils.get(bot.voice_clients, guild__id=interaction.guild.id)
     if not voice_client or not voice_client.is_connected():
-        await interaction.response.send_message("❌ ดึงน้องแมวเข้าห้องเสียงก่อนสั่งร้องนะ!", ephemeral=True)
+        await interaction.response.send_message("❌ ดึงน้องแมวเข้าห้องเสียงก่อน!", ephemeral=True)
         return
-
     selected_sound = random.choice(CAT_SOUNDS)
-
     try:
         if voice_client.is_playing():
             voice_client.stop()
-            
         source = discord.FFmpegPCMAudio(selected_sound, **FFMPEG_OPTIONS)
         voice_client.play(source)
         await interaction.response.send_message("🐈 Meow~ (ส่งเสียงแมว 1 ครั้ง)")
@@ -84,4 +85,4 @@ if TOKEN:
     bot.run(TOKEN)
 else:
     print("Error: ไม่พบ TOKEN ใน Environment Variables")
-
+    
