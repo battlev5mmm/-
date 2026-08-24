@@ -1,6 +1,4 @@
 import os
-import random
-import asyncio
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -12,30 +10,15 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# 🐱 คลังลิงก์เสียงแมวร้อง
-CAT_SOUNDS = [
-    "https://www.myinstants.com/media/sounds/meow_1.mp3",
-    "https://www.myinstants.com/media/sounds/cat-meow-sound-effect_1.mp3",
-    "https://www.myinstants.com/media/sounds/meow-sound-effect.mp3"
-]
-
-FFMPEG_OPTIONS = {
-    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-    'options': '-vn -loglevel quiet',
-}
-
 MY_GUILD = discord.Object(id=GUILD_ID)
 
 @bot.event
 async def on_ready():
     print(f'🐱 บอทแมวกลม ออนไลน์แล้ว! (ID: {bot.user.id})')
-    
-    # ซิงค์คำสั่งเฉพาะเซิร์ฟเวอร์ของคุณทันทีที่รัน
     try:
-        # คัดลอกคำสั่งทั้งหมดส่งไปที่ GUILD_ID นี้โดยเฉพาะ
         bot.tree.copy_global_to(guild=MY_GUILD)
         synced = await bot.tree.sync(guild=MY_GUILD)
-        print(f"✅ ซิงค์ {len(synced)} คำสั่งเข้าเซิร์ฟเวอร์ {GUILD_ID} เรียบร้อยแล้ว!")
+        print(f"✅ ซิงค์ {len(synced)} คำสั่งเข้าเซิร์ฟเวอร์เรียบร้อย!")
     except Exception as e:
         print(f"❌ ซิงค์คำสั่งไม่ผ่าน: {e}")
 
@@ -63,26 +46,10 @@ async def go_out(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("❌ น้องไม่ได้อยู่ในห้องเสียงนะ", ephemeral=True)
 
-@bot.tree.command(name="เสียงแมว", description="สุ่มเปิดเสียงแมวจากคลัง 1 ครั้ง")
-async def cat_sound(interaction: discord.Interaction):
-    voice_client = discord.utils.get(bot.voice_clients, guild__id=interaction.guild.id)
-    if not voice_client or not voice_client.is_connected():
-        await interaction.response.send_message("❌ ดึงน้องแมวเข้าห้องเสียงก่อน!", ephemeral=True)
-        return
-    selected_sound = random.choice(CAT_SOUNDS)
-    try:
-        if voice_client.is_playing():
-            voice_client.stop()
-        source = discord.FFmpegPCMAudio(selected_sound, **FFMPEG_OPTIONS)
-        voice_client.play(source)
-        await interaction.response.send_message("🐈 Meow~ (ส่งเสียงแมว 1 ครั้ง)")
-    except Exception as e:
-        await interaction.response.send_message(f"❌ เล่นเสียงไม่ได้: {e}", ephemeral=True)
-
 # -------------------- รันบอท --------------------
 TOKEN = os.getenv('TOKEN')
 if TOKEN:
     bot.run(TOKEN)
 else:
     print("Error: ไม่พบ TOKEN ใน Environment Variables")
-    
+
