@@ -5,13 +5,11 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-# 🔑 ใส่ ID ของคุณ (Discord User ID) เพื่อใช้คำสั่ง /sync
-OWNER_ID = 123456789012345678  # <--- เปลี่ยนเป็นเลข ID ของคุณ
-
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# 🐱 คลังลิงก์เสียงแมวร้องแบบต่างๆ (สุ่มเล่น)
 CAT_SOUNDS = [
     "https://www.myinstants.com/media/sounds/meow_1.mp3",
     "https://www.myinstants.com/media/sounds/cat-meow-sound-effect_1.mp3",
@@ -25,10 +23,15 @@ FFMPEG_OPTIONS = {
 
 @bot.event
 async def on_ready():
-    # ไม่มีการ sync อัตโนมัติอีกต่อไป
-    print(f'🐱 บอทแมวกลม พร้อมใช้งานแล้ว! (ID: {bot.user.id})')
+    print(f'🐱 บอทแมวกลม ออนไลน์แล้ว! (ID: {bot.user.id})')
+    # ซิงค์คำสั่ง Slash Command อัตโนมัติเมื่อบอทออนไลน์
+    try:
+        synced = await bot.tree.sync()
+        print(f"✅ ซิงค์ Slash Commands สำเร็จทั้งหมด {len(synced)} คำสั่ง!")
+    except Exception as e:
+        print(f"❌ ซิงค์คำสั่งไม่ผ่าน: {e}")
 
-# -------------------- คำสั่ง --------------------
+# -------------------- คำสั่ง Slash Commands --------------------
 
 @bot.tree.command(name="เข้ามา", description="ให้น้องแมวกลมเข้าไป AFK ในห้องเสียง")
 async def come_in(interaction: discord.Interaction):
@@ -42,6 +45,7 @@ async def come_in(interaction: discord.Interaction):
     if voice_client:
         await voice_client.move_to(voice_channel)
     else:
+        # self_deaf=True ปิดการได้ยิน ขึ้นไอคอนหูฟังโดนขีดฆ่า
         await voice_channel.connect(self_deaf=True)
     
     await interaction.response.send_message("🐾 เมี้ยว~ น้องแมวกลมมานั่ง AFK แล้ว!")
@@ -67,20 +71,12 @@ async def cat_sound(interaction: discord.Interaction):
     try:
         if voice_client.is_playing():
             voice_client.stop()
+            
         source = discord.FFmpegPCMAudio(selected_sound, **FFMPEG_OPTIONS)
         voice_client.play(source)
         await interaction.response.send_message("🐈 Meow~ (ส่งเสียงแมว 1 ครั้ง)")
     except Exception as e:
         await interaction.response.send_message(f"❌ เล่นเสียงไม่ได้: {e}", ephemeral=True)
-
-# -------------------- คำสั่งซิงค์ (เฉพาะเจ้าของ) --------------------
-@bot.tree.command(name="sync", description="ซิงค์ Slash Command (เฉพาะเจ้าของ)")
-async def sync_commands(interaction: discord.Interaction):
-    if interaction.user.id != OWNER_ID:
-        await interaction.response.send_message("❌ เฉพาะเจ้าของบอทเท่านั้นที่ใช้ได้", ephemeral=True)
-        return
-    await bot.tree.sync()
-    await interaction.response.send_message("✅ ซิงค์คำสั่งเรียบร้อย!", ephemeral=True)
 
 # -------------------- รันบอท --------------------
 TOKEN = os.getenv('TOKEN')
@@ -88,3 +84,4 @@ if TOKEN:
     bot.run(TOKEN)
 else:
     print("Error: ไม่พบ TOKEN ใน Environment Variables")
+
